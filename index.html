@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mystery Box 🎁</title>
+  <link href="https://fonts.googleapis.com/css2?family=Boogaloo&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gold: #ffd700;
+      --orange: #ff6b00;
+      --pink: #ff3cac;
+      --purple: #784ba0;
+      --blue: #2b86c5;
+      --dark: #0d0221;
+      --glow: rgba(255,215,0,0.6);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: var(--dark);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      padding: 20px;
+      position: relative;
+    }
+
+    /* ── STAR FIELD ── */
+    .stars {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .star {
+      position: absolute;
+      border-radius: 50%;
+      background: white;
+      animation: twinkle linear infinite;
+    }
+    @keyframes twinkle {
+      0%,100% { opacity: 0.1; transform: scale(1); }
+      50%      { opacity: 1; transform: scale(1.5); }
+    }
+
+    /* ── SHARE BANNER ── */
+    .banner {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      margin-bottom: 28px;
+      animation: fadeDown 0.7s ease both;
+    }
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .banner h1 {
+      font-family: 'Boogaloo', cursive;
+      font-size: clamp(26px, 6vw, 42px);
+      color: var(--gold);
+      text-shadow: 0 0 20px var(--glow), 0 2px 0 #a07000;
+      line-height: 1.2;
+    }
+    .banner p {
+      font-size: clamp(13px, 3vw, 16px);
+      color: rgba(255,255,255,0.65);
+      margin-top: 6px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── STAGE ── */
+    #stage {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── BOX WRAPPER ── */
+    #boxWrap {
+      position: relative;
+      width: 180px;
+      height: 180px;
+      cursor: pointer;
+      filter: drop-shadow(0 0 20px var(--glow));
+      transition: filter 0.3s;
+    }
+    #boxWrap:hover { filter: drop-shadow(0 0 40px var(--gold)); }
+
+    /* glow ring */
+    #glowRing {
+      position: absolute;
+      inset: -20px;
+      border-radius: 50%;
+      border: 4px solid transparent;
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    /* box SVG */
+    #box {
+      width: 100%;
+      height: 100%;
+      transition: transform 0.1s;
+    }
+
+    /* tap hint */
+    #tapHint {
+      margin-top: 18px;
+      font-family: 'Boogaloo', cursive;
+      font-size: 22px;
+      color: var(--gold);
+      animation: hintPulse 1.5s ease-in-out infinite;
+      letter-spacing: 1px;
+    }
+    @keyframes hintPulse {
+      0%,100% { opacity: 0.5; transform: scale(1); }
+      50%      { opacity: 1; transform: scale(1.08); }
+    }
+
+    /* ── STATUS TEXT ── */
+    #statusText {
+      margin-top: 22px;
+      font-family: 'Boogaloo', cursive;
+      font-size: clamp(18px, 4.5vw, 26px);
+      color: white;
+      letter-spacing: 1px;
+      min-height: 36px;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    /* ── ANIMATIONS: box states ── */
+    @keyframes boxIdle {
+      0%,100% { transform: translateY(0) rotate(0deg); }
+      25%      { transform: translateY(-6px) rotate(-1.5deg); }
+      75%      { transform: translateY(-3px) rotate(1.5deg); }
+    }
+    @keyframes boxShake {
+      0%,100% { transform: rotate(0deg) scale(1); }
+      15%      { transform: rotate(-8deg) scale(1.05); }
+      30%      { transform: rotate(8deg) scale(1.08); }
+      45%      { transform: rotate(-6deg) scale(1.06); }
+      60%      { transform: rotate(6deg) scale(1.04); }
+      75%      { transform: rotate(-4deg) scale(1.02); }
+    }
+    @keyframes boxGlow {
+      0%,100% { filter: drop-shadow(0 0 15px var(--gold)) drop-shadow(0 0 40px var(--orange)); }
+      50%      { filter: drop-shadow(0 0 50px #fff) drop-shadow(0 0 80px var(--gold)); }
+    }
+    @keyframes boxOpen {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.3) rotate(-5deg); }
+      70%  { transform: scale(0.85); }
+      100% { transform: scale(1); }
+    }
+
+    /* ── FLASH OVERLAY ── */
+    #flash {
+      position: fixed;
+      inset: 0;
+      background: white;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.1s;
+    }
+
+    /* ── RAYS ── */
+    #rays {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 5;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s;
+    }
+    .ray-container {
+      position: relative;
+      width: 600px;
+      height: 600px;
+    }
+    .ray {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 300px; height: 6px;
+      transform-origin: 0 50%;
+      background: linear-gradient(to right, transparent, rgba(255,215,0,0.6), transparent);
+      border-radius: 3px;
+      animation: spinRays 3s linear infinite;
+    }
+    @keyframes spinRays { to { transform: rotate(360deg); } }
+
+    /* ── RESULT CARD ── */
+    #resultCard {
+      display: none;
+      position: relative;
+      z-index: 20;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      animation: burstIn 0.6s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+    @keyframes burstIn {
+      0%   { opacity: 0; transform: scale(0.2) rotate(-15deg); }
+      100% { opacity: 1; transform: scale(1) rotate(0deg); }
+    }
+    .result-emoji {
+      font-size: clamp(72px, 20vw, 110px);
+      line-height: 1;
+      animation: bounce 1s ease-in-out infinite alternate;
+      filter: drop-shadow(0 0 20px rgba(255,255,255,0.5));
+    }
+    @keyframes bounce {
+      from { transform: translateY(0) scale(1); }
+      to   { transform: translateY(-12px) scale(1.06); }
+    }
+    .result-label {
+      font-family: 'Boogaloo', cursive;
+      font-size: clamp(22px, 6vw, 38px);
+      color: white;
+      margin-top: 14px;
+      text-shadow: 0 0 20px rgba(255,255,255,0.5);
+    }
+    .result-sub {
+      font-size: clamp(13px, 3.5vw, 17px);
+      color: rgba(255,255,255,0.7);
+      margin-top: 8px;
+      max-width: 280px;
+      line-height: 1.5;
+      font-weight: 700;
+    }
+    .result-tag {
+      margin-top: 16px;
+      background: linear-gradient(135deg, var(--pink), var(--purple));
+      color: white;
+      font-weight: 900;
+      font-size: clamp(12px, 3vw, 15px);
+      padding: 8px 20px;
+      border-radius: 40px;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 20px rgba(255,60,172,0.4);
+      animation: tagPop 0.5s 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+    @keyframes tagPop {
+      from { opacity: 0; transform: scale(0.5); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    /* ── CONFETTI PIECES ── */
+    .confetti {
+      position: fixed;
+      pointer-events: none;
+      z-index: 50;
+      animation: confettiFall linear forwards;
+      border-radius: 2px;
+    }
+    @keyframes confettiFall {
+      0%   { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(105vh) rotate(720deg); opacity: 0; }
+    }
+
+    /* ── PARTICLES ── */
+    .particle {
+      position: fixed;
+      pointer-events: none;
+      z-index: 50;
+      font-size: 20px;
+      animation: particleBurst ease-out forwards;
+    }
+    @keyframes particleBurst {
+      0%   { opacity: 1; transform: translate(0,0) scale(1); }
+      100% { opacity: 0; transform: translate(var(--px), var(--py)) scale(0.3); }
+    }
+
+    /* ── MOBILE ── */
+    @media (max-width: 480px) {
+      #boxWrap { width: 150px; height: 150px; }
+    }
+
+    /* ── DARE SCREEN ── */
+    #dareScreen {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      animation: fadeDown 0.8s ease both;
+    }
+
+    .dare-title {
+      font-family: 'Boogaloo', cursive;
+      font-size: clamp(38px, 10vw, 68px);
+      color: var(--gold);
+      text-shadow: 0 0 30px var(--glow), 0 3px 0 #a07000;
+      line-height: 1.1;
+      animation: dareFlicker 3s ease-in-out infinite;
+    }
+    @keyframes dareFlicker {
+      0%,90%,100% { text-shadow: 0 0 30px var(--glow), 0 3px 0 #a07000; }
+      95%          { text-shadow: 0 0 60px #fff, 0 0 100px var(--gold); }
+    }
+
+    .dare-sub {
+      font-size: clamp(14px, 3.5vw, 18px);
+      color: rgba(255,255,255,0.6);
+      margin-top: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .dare-question {
+      font-family: 'Boogaloo', cursive;
+      font-size: clamp(22px, 6vw, 36px);
+      color: white;
+      margin: 28px 0 10px;
+      text-shadow: 0 0 15px rgba(255,255,255,0.3);
+    }
+
+    .dare-btns {
+      display: flex;
+      gap: 20px;
+      margin-top: 10px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #dareYes {
+      padding: 16px 42px;
+      font-size: clamp(18px, 5vw, 24px);
+      font-family: 'Boogaloo', cursive;
+      font-weight: 400;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #ffd700, #ff6b00);
+      color: #0d0221;
+      box-shadow: 0 6px 28px rgba(255,215,0,0.5);
+      transition: transform 0.15s, box-shadow 0.15s;
+      animation: yesPulse 2s ease-in-out infinite;
+      letter-spacing: 1px;
+    }
+    #dareYes:hover { transform: scale(1.1); box-shadow: 0 10px 40px rgba(255,215,0,0.7); }
+    #dareYes:active { transform: scale(0.96); }
+    @keyframes yesPulse {
+      0%,100% { box-shadow: 0 6px 28px rgba(255,215,0,0.5); }
+      50%      { box-shadow: 0 8px 50px rgba(255,215,0,0.9), 0 0 0 6px rgba(255,215,0,0.15); }
+    }
+
+    #dareNo {
+      padding: 14px 30px;
+      font-size: clamp(16px, 4vw, 20px);
+      font-family: 'Boogaloo', cursive;
+      font-weight: 400;
+      border: 2px solid rgba(255,255,255,0.6);
+      border-radius: 50px;
+      cursor: pointer;
+      background: rgba(255,255,255,0.18);
+      color: white;
+      position: fixed;
+      bottom: 40px;
+      right: 30px;
+      transition: background 0.2s, border-color 0.2s;
+      letter-spacing: 1px;
+      z-index: 999;
+      backdrop-filter: blur(4px);
+    }
+    #dareNo:hover { background: rgba(255,60,60,0.3); border-color: #ff6b6b; }
+
+    .scare-msg {
+      font-family: 'Boogaloo', cursive;
+      font-size: clamp(14px, 3.5vw, 18px);
+      color: var(--pink);
+      margin-top: 18px;
+      min-height: 26px;
+      animation: scareIn 0.3s ease both;
+      letter-spacing: 0.5px;
+    }
+    @keyframes scareIn {
+      from { opacity: 0; transform: scale(0.7); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    /* ── TRANSITION ── */
+    #mainContent { display: none; width: 100%; }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(40px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .show-main { animation: slideUp 0.6s ease both; }
+
+  </style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+<div id="flash"></div>
+<div id="rays">
+  <div class="ray-container" id="rayContainer"></div>
+</div>
+
+<div id="dareScreen">
+  <div class="dare-title">😈 Do You Dare?</div>
+  <div class="dare-sub">Friend click this... if you dare 👀</div>
+  <div class="dare-question">Are you brave enough to open the Mystery Box?</div>
+  <div class="dare-btns">
+    <button id="dareYes" onclick="acceptDare()">YES, I DARE 🔥</button>
+    <button id="dareNo" onclick="moveDareNo(event)" ontouchstart="moveDareNo(event)">No way 😭</button>
+  </div>
+  <div class="scare-msg" id="scareMsg"></div>
+</div>
+
+<div id="mainContent">
+<div class="banner">
+  <h1>🎁 Mystery Box Challenge</h1>
+  <p>Alright! Now that you dared this challenge, there is no way going back. Open it!!! 👀👀</p>
+</div>
+
+<div id="stage">
+  <!-- BOX -->
+  <div id="boxWrap" onclick="handleTap()">
+    <div id="glowRing"></div>
+    <svg id="box" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+      <!-- shadow -->
+      <ellipse cx="90" cy="168" rx="55" ry="8" fill="rgba(0,0,0,0.35)"/>
+      <!-- box body -->
+      <rect x="20" y="85" width="140" height="80" rx="6" fill="#c0392b"/>
+      <rect x="20" y="85" width="140" height="80" rx="6" fill="url(#bodyGrad)"/>
+      <!-- box lid -->
+      <rect x="14" y="68" width="152" height="26" rx="6" fill="#e74c3c"/>
+      <rect x="14" y="68" width="152" height="26" rx="6" fill="url(#lidGrad)"/>
+      <!-- ribbon vertical -->
+      <rect x="82" y="68" width="16" height="97" fill="#f39c12"/>
+      <rect x="82" y="68" width="16" height="97" fill="url(#ribbonV)"/>
+      <!-- ribbon horizontal on lid -->
+      <rect x="14" y="75" width="152" height="12" fill="#f39c12"/>
+      <rect x="14" y="75" width="152" height="12" fill="url(#ribbonH)"/>
+      <!-- bow left loop -->
+      <ellipse cx="72" cy="60" rx="22" ry="14" fill="#f39c12" transform="rotate(-20,72,60)"/>
+      <ellipse cx="72" cy="60" rx="22" ry="14" fill="url(#bowGrad)" transform="rotate(-20,72,60)"/>
+      <!-- bow right loop -->
+      <ellipse cx="108" cy="60" rx="22" ry="14" fill="#f39c12" transform="rotate(20,108,60)"/>
+      <ellipse cx="108" cy="60" rx="22" ry="14" fill="url(#bowGrad)" transform="rotate(20,108,60)"/>
+      <!-- bow center -->
+      <circle cx="90" cy="63" r="10" fill="#e67e22"/>
+      <circle cx="90" cy="63" r="10" fill="url(#bowCenter)"/>
+      <!-- shine on lid -->
+      <rect x="22" y="72" width="60" height="5" rx="2.5" fill="rgba(255,255,255,0.2)"/>
+      <!-- dots on body -->
+      <circle cx="50" cy="115" r="4" fill="rgba(255,255,255,0.15)"/>
+      <circle cx="130" cy="115" r="4" fill="rgba(255,255,255,0.15)"/>
+      <circle cx="50" cy="140" r="4" fill="rgba(255,255,255,0.15)"/>
+      <circle cx="130" cy="140" r="4" fill="rgba(255,255,255,0.15)"/>
+      <defs>
+        <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="rgba(255,100,80,0.3)"/>
+          <stop offset="100%" stop-color="rgba(0,0,0,0.2)"/>
+        </linearGradient>
+        <linearGradient id="lidGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="rgba(255,180,160,0.35)"/>
+          <stop offset="100%" stop-color="rgba(0,0,0,0.1)"/>
+        </linearGradient>
+        <linearGradient id="ribbonV" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="rgba(0,0,0,0.15)"/>
+          <stop offset="50%" stop-color="rgba(255,255,255,0.25)"/>
+          <stop offset="100%" stop-color="rgba(0,0,0,0.15)"/>
+        </linearGradient>
+        <linearGradient id="ribbonH" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="rgba(255,255,255,0.25)"/>
+          <stop offset="100%" stop-color="rgba(0,0,0,0.1)"/>
+        </linearGradient>
+        <linearGradient id="bowGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="rgba(255,255,255,0.3)"/>
+          <stop offset="100%" stop-color="rgba(0,0,0,0.1)"/>
+        </linearGradient>
+        <radialGradient id="bowCenter" cx="40%" cy="35%">
+          <stop offset="0%" stop-color="rgba(255,255,255,0.4)"/>
+          <stop offset="100%" stop-color="rgba(0,0,0,0.1)"/>
+        </radialGradient>
+      </defs>
+    </svg>
+  </div>
+
+  <div id="tapHint">👆 Tap to open!</div>
+  <div id="statusText"></div>
+
+  <!-- RESULT (hidden initially) -->
+  <div id="resultCard">
+    <div class="result-emoji" id="resultEmoji"></div>
+    <div class="result-label" id="resultLabel"></div>
+    <div class="result-sub" id="resultSub"></div>
+    <div class="result-tag" id="resultTag"></div>
+  </div>
+</div>
+</div><!-- end mainContent -->
+
+<script>
+// ── STAR FIELD ──
+const starsEl = document.getElementById('stars');
+for (let i = 0; i < 80; i++) {
+  const s = document.createElement('div');
+  s.className = 'star';
+  const sz = Math.random() * 2.5 + 0.5;
+  s.style.cssText = `width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;animation-duration:${Math.random()*3+1.5}s;animation-delay:${Math.random()*3}s`;
+  starsEl.appendChild(s);
+}
+
+// ── RAYS ──
+const rayContainer = document.getElementById('rayContainer');
+for (let i = 0; i < 16; i++) {
+  const r = document.createElement('div');
+  r.className = 'ray';
+  r.style.transform = `rotate(${i * 22.5}deg)`;
+  r.style.animationDelay = `${i * 0.1}s`;
+  rayContainer.appendChild(r);
+}
+
+// ── PRIZES ──
+const prizes = [
+  { emoji: "🌹", label: "Give me a rose!", sub: "A real one. Not a sticker.", tag: "Romantic Mission 💕" },
+  { emoji: "🍫", label: "Buy me chocolate!", sub: "Dairy Milk counts. Don't be cheap.", tag: "Sweet Debt 🍬" },
+  { emoji: "👟", label: "Throw your shoe back at me!", sub: "(*LOL instant karma huh? Serves you right, hehe*)", tag: "Shoe Chaos 👟" },
+  { emoji: "🤳", label: "Send your funniest selfie!", sub: "No filters. No mercy.", tag: "Ugly Photo Quest 📸" },
+  { emoji: "🤫", label: "Spill your latest secret!", sub: "We're taking this to the grave.", tag: "Secret Unlocked 🔐" },
+  { emoji: "🍔", label: "Buy me momo!", sub: "Jhol momo. Obviously.", tag: "Food Debt Activated 🥟" },
+  { emoji: "💌", label: "Write me a compliment!", sub: "Make it embarrassingly sweet.", tag: "Kindness Unlocked 🥰" },
+  { emoji: "🎤", label: "Sing one line of a song!", sub: "Voice note. RIGHT NOW.", tag: "Surprise Concert 🎵" },
+  { emoji: "💤", label: "Send your sleepiest voice note!", sub: "Yawning is mandatory.", tag: "Sleepy Challenge 😴" },
+  { emoji: "🕺", label: "Do a weird dance!", sub: "Record it. No excuses.", tag: "Dance Activated 🪩" },
+  { emoji: "🧦", label: "Give me one sock!", sub: "Just one. Keep the other.", tag: "Chaotic Gift 🎁" },
+  { emoji: "🧠", label: "Share your most embarrassing memory!", sub: "The one you've never told anyone.", tag: "Cringe Unlocked 😬" },
+  { emoji: "📸", label: "Send your ugliest angle picture!", sub: "Double chin encouraged.", tag: "Beauty Destroyed 💀" },
+  { emoji: "☕", label: "Buy me coffee!", sub: "Iced. Extra sugar. Full love.", tag: "Coffee Coupon ☕" },
+  { emoji: "🧸", label: "Give me a hug coupon!", sub: "Redeemable anytime. No expiry.", tag: "Free Hug 🤗" },
+  { emoji: "🪥", label: "Reveal your weirdest habit!", sub: "Everyone has one. Spill.", tag: "Weird Mode On 🌀" },
+  { emoji: "🍟", label: "Share your snacks!", sub: "Not all. Just some. Okay all.", tag: "Snack Tax 🧀" },
+  { emoji: "🐒", label: "Act like a monkey for 10 seconds!", sub: "Video proof required.", tag: "Animal Mode 🦍" },
+  { emoji: "🎮", label: "Let me choose your profile picture!", sub: "For 24 hours. No backsies.", tag: "Profile Hijacked 😈" },
+  { emoji: "💃", label: "Send a dramatic reel!", sub: "The most chaotic one you have.", tag: "Drama Queen Mode 🎭" },
+  { emoji: "🎂", label: "Bake me a cake!", sub: "Even if it looks like a disaster.", tag: "Baker's Challenge 🍰" },
+  { emoji: "📞", label: "Call me right now!", sub: "Pick up after one ring. Test of loyalty.", tag: "Instant Call 📲" },
+  { emoji: "🎪", label: "Tell me your most chaotic story!", sub: "The one that starts with 'okay don't judge me'.", tag: "Chaos Unlocked 🌪️" },
+  { emoji: "🌮", label: "Make me food from scratch!", sub: "Anything. Even toast counts.", tag: "Chef Mode 👨‍🍳" },
+  { emoji: "💇", label: "Let me give you a haircut!", sub: "With scissors or just scissors.", tag: "Makeover Time ✂️" },
+];
+
+// ── SOUNDS (Web Audio API - no file needed) ──
+const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playTone(freq, type, dur, delay=0, vol=0.3) {
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.connect(g); g.connect(ctx.destination);
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0, ctx.currentTime + delay);
+  g.gain.linearRampToValueAtTime(vol, ctx.currentTime + delay + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + dur);
+  o.start(ctx.currentTime + delay);
+  o.stop(ctx.currentTime + delay + dur + 0.05);
+}
+
+function playShakeSound() {
+  [200,180,220,160].forEach((f,i) => playTone(f, 'sawtooth', 0.1, i*0.08, 0.15));
+}
+
+function playFlashSound() {
+  playTone(800, 'sine', 0.05, 0, 0.4);
+  playTone(1200, 'sine', 0.05, 0.05, 0.4);
+  playTone(600, 'sine', 0.1, 0.1, 0.3);
+}
+
+function playRevealSound() {
+  const notes = [523, 659, 784, 1047];
+  notes.forEach((f, i) => playTone(f, 'triangle', 0.3, i * 0.1, 0.4));
+  playTone(1568, 'sine', 0.5, 0.5, 0.5);
+}
+
+
+// ── DARE SCREEN LOGIC ──
+const scareMsgs = [
+  "😂 Too scared?? The box is waiting...",
+  "🐔 Chicken! Just tap YES already!",
+  "👀 It won't bite... probably.",
+  "😏 Running away? Classic.",
+  "🌚 The box knows you tried to escape.",
+  "💀 Your fate is sealed either way...",
+  "🫣 Stop dodging and face your destiny!",
+  "😈 The NO button doesn't actually work lol",
+];
+let scareCount = 0;
+
+let noMoving = false;
+function moveDareNo(e) {
+  if (e) e.preventDefault();
+  if (noMoving) return;
+  noMoving = true;
+  setTimeout(() => noMoving = false, 350);
+
+  ctx.resume();
+  const btn = document.getElementById('dareNo');
+
+  // Remove bottom/right so left/top take full control
+  btn.style.bottom = '';
+  btn.style.right = '';
+
+  const rect = btn.getBoundingClientRect();
+  const w = rect.width || 130;
+  const h = rect.height || 48;
+  const margin = 16;
+  const maxX = window.innerWidth - w - margin;
+  const maxY = window.innerHeight - h - margin;
+  const x = margin + Math.random() * Math.max(0, maxX - margin);
+  const y = margin + Math.random() * Math.max(0, maxY - margin);
+  btn.style.left = x + 'px';
+  btn.style.top = y + 'px';
+
+  playTone(300 + Math.random()*200, 'sine', 0.15, 0, 0.12);
+
+  const msg = scareMsgs[scareCount % scareMsgs.length];
+  scareCount++;
+  const el = document.getElementById('scareMsg');
+  el.style.animation = 'none';
+  el.offsetHeight; // reflow
+  el.style.animation = 'scareIn 0.3s ease both';
+  el.textContent = msg;
+}
+
+function acceptDare() {
+  ctx.resume();
+  // play a rising chime
+  [400, 600, 800, 1000].forEach((f, i) => playTone(f, 'triangle', 0.2, i * 0.08, 0.25));
+
+  const dareScreen = document.getElementById('dareScreen');
+  dareScreen.style.transition = 'opacity 0.4s, transform 0.4s';
+  dareScreen.style.opacity = '0';
+  dareScreen.style.transform = 'scale(0.8)';
+
+  setTimeout(() => {
+    dareScreen.style.display = 'none';
+    document.getElementById('dareNo').style.display = 'none';
+    const main = document.getElementById('mainContent');
+    main.style.display = 'flex';
+    main.style.flexDirection = 'column';
+    main.style.alignItems = 'center';
+    main.classList.add('show-main');
+    // start idle box animation
+    document.getElementById('box').style.animation = 'boxIdle 2.5s ease-in-out infinite';
+  }, 400);
+}
+
+// ── STATE ──
+let opened = false;
+
+// idle bounce is set in acceptDare()
+
+function setStatus(text, color='white') {
+  const s = document.getElementById('statusText');
+  s.style.opacity = '0';
+  setTimeout(() => {
+    s.textContent = text;
+    s.style.color = color;
+    s.style.opacity = '1';
+  }, 150);
+}
+
+function flashScreen() {
+  const f = document.getElementById('flash');
+  f.style.opacity = '1';
+  setTimeout(() => f.style.opacity = '0', 120);
+}
+
+function spawnConfetti() {
+  const colors = ['#ffd700','#ff6b6b','#48dbfb','#ff9ff3','#54a0ff','#5f27cd','#00d2d3','#feca57'];
+  for (let i = 0; i < 80; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    const w = Math.random() * 10 + 5;
+    const h = Math.random() * 6 + 3;
+    c.style.cssText = `
+      width:${w}px;height:${h}px;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      left:${Math.random()*100}vw;
+      top:-10px;
+      animation-duration:${Math.random()*2+2}s;
+      animation-delay:${Math.random()*0.5}s;
+      transform:rotate(${Math.random()*360}deg);
+    `;
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 3500);
+  }
+}
+
+function spawnParticles() {
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2;
+  const emojis = ['✨','💥','🌟','⭐','💫','🎉','🎊'];
+  for (let i = 0; i < 20; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+    const angle = (i / 20) * Math.PI * 2;
+    const dist = Math.random() * 200 + 100;
+    p.style.cssText = `left:${cx}px;top:${cy}px;animation-duration:${Math.random()*0.5+0.5}s;`;
+    p.style.setProperty('--px', Math.cos(angle)*dist + 'px');
+    p.style.setProperty('--py', Math.sin(angle)*dist + 'px');
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 1200);
+  }
+}
+
+async function handleTap() {
+  if (opened) return;
+  opened = true;
+
+  ctx.resume(); // unlock audio on first tap
+
+  const box = document.getElementById('box');
+  const boxWrap = document.getElementById('boxWrap');
+  const tapHint = document.getElementById('tapHint');
+  const rays = document.getElementById('rays');
+
+  tapHint.style.display = 'none';
+
+  // PHASE 1: Glow
+  setStatus('✨ Something is inside...', '#ffd700');
+  boxWrap.style.animation = 'boxGlow 0.6s ease-in-out infinite';
+  await delay(800);
+
+  // PHASE 2: Shake
+  setStatus('📦 It\'s waking up...', '#ff9ff3');
+  box.style.animation = 'boxShake 0.5s ease-in-out 2';
+  playShakeSound();
+  await delay(1000);
+
+  // PHASE 3: Rainbow light rays
+  setStatus('🌈 Choosing your fate...', '#48dbfb');
+  rays.style.opacity = '1';
+  await delay(900);
+
+  // PHASE 4: More shaking + suspense
+  setStatus('😱 Get ready...', '#feca57');
+  box.style.animation = 'boxShake 0.3s ease-in-out 3';
+  playShakeSound();
+  await delay(900);
+
+  // PHASE 5: White flash + open
+  setStatus('💥 OPENING!', 'white');
+  flashScreen();
+  playFlashSound();
+  box.style.animation = 'boxOpen 0.5s ease-out both';
+  await delay(200);
+  flashScreen();
+  await delay(300);
+
+  // PHASE 6: Rays burst + confetti
+  rays.style.opacity = '0.7';
+  spawnConfetti();
+  spawnParticles();
+  playRevealSound();
+
+  // pick prize
+  const prize = prizes[Math.floor(Math.random() * prizes.length)];
+
+  // Hide box, show result
+  await delay(200);
+  boxWrap.style.transition = 'opacity 0.3s, transform 0.3s';
+  boxWrap.style.opacity = '0';
+  boxWrap.style.transform = 'scale(0.5)';
+  document.getElementById('statusText').style.opacity = '0';
+
+  await delay(350);
+  boxWrap.style.display = 'none';
+
+  const card = document.getElementById('resultCard');
+  document.getElementById('resultEmoji').textContent = prize.emoji;
+  document.getElementById('resultLabel').textContent = prize.label;
+  document.getElementById('resultSub').textContent = prize.sub;
+  document.getElementById('resultTag').textContent = prize.tag;
+  card.style.display = 'flex';
+
+  // fade rays out slowly
+  setTimeout(() => rays.style.opacity = '0', 3000);
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+</script>
+</body>
+</html>
